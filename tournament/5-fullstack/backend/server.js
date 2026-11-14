@@ -15,6 +15,20 @@ const app = express();
 app.use(cors({ origin: process.env.FRONTEND_URL || "*" }));
 app.use(express.json());
 
+// Root health check endpoint
+app.get("/", (req, res) => {
+  res.json({
+    status: "online",
+    message: "🏆 Tournament Championship Backend API is live & connected to MongoDB Atlas!",
+    endpoints: {
+      getTeams: "/api/teams",
+      postTeam: "/api/teams",
+      updateTeam: "/api/teams/:id",
+      deleteTeam: "/api/teams/:id"
+    }
+  });
+});
+
 const wrap = fn => (req, res, next) => fn(req, res, next).catch(next);
 app.get("/api/teams", wrap(async (req, res) => res.json(await Team.find().sort("-createdAt"))));
 app.post("/api/teams", wrap(async (req, res) => res.status(201).json(await Team.create(req.body))));
