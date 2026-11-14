@@ -1,0 +1,3 @@
+[{"id":1,"name":"Thane Tigers","sport":"Football","city":"Thane","points":9,"status":"Live"},
+{"id":2,"name":"Mumbai Mavericks","sport":"Football","city":"Mumbai","points":6,"status":"Scheduled"},
+{"id":3,"name":"Pune Panthers","sport":"Football","city":"Pune","points":12,"status":"Completed"}]

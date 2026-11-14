@@ -1,0 +1,34 @@
+[
+  {
+    "id": 1,
+    "name": "Thane Tigers",
+    "sport": "Football",
+    "city": "Thane",
+    "points": 15,
+    "status": "Live"
+  },
+  {
+    "id": 2,
+    "name": "Mumbai Mavericks",
+    "sport": "Cricket",
+    "city": "Mumbai",
+    "points": 18,
+    "status": "Live"
+  },
+  {
+    "id": 3,
+    "name": "Pune Panthers",
+    "sport": "Basketball",
+    "city": "Pune",
+    "points": 12,
+    "status": "Completed"
+  },
+  {
+    "id": 1794653378475,
+    "points": 6,
+    "status": "Live",
+    "name": "Kolkata Knights",
+    "sport": "Cricket",
+    "city": "Kolkata"
+  }
+]

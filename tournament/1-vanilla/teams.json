@@ -1,0 +1,8 @@
+[
+  { "id": 1, "name": "Thane Tigers", "sport": "Football", "city": "Thane", "points": 15, "status": "Live" },
+  { "id": 2, "name": "Mumbai Mavericks", "sport": "Cricket", "city": "Mumbai", "points": 18, "status": "Live" },
+  { "id": 3, "name": "Pune Panthers", "sport": "Basketball", "city": "Pune", "points": 12, "status": "Completed" },
+  { "id": 4, "name": "Bengaluru Bulls", "sport": "Kabaddi", "city": "Bengaluru", "points": 21, "status": "Completed" },
+  { "id": 5, "name": "Delhi Dragons", "sport": "Football", "city": "Delhi", "points": 9, "status": "Scheduled" },
+  { "id": 6, "name": "Chennai Champions", "sport": "Cricket", "city": "Chennai", "points": 6, "status": "Scheduled" }
+]
