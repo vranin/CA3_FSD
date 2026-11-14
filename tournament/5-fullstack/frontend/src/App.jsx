@@ -1,124 +1,186 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Routes, Route } from "react-router-dom";
 import Navbar from "./components/Navbar.jsx";
-import StatsHeader from "./components/StatsHeader.jsx";
-import TeamList from "./components/TeamList.jsx";
-import TeamForm from "./components/TeamForm.jsx";
+import BottomNav from "./components/BottomNav.jsx";
+import Toast from "./components/ui/Toast.jsx";
+import ErrorBoundary from "./components/ErrorBoundary.jsx";
 
+// Pages
+import Dashboard from "./pages/Dashboard.jsx";
+import Teams from "./pages/Teams.jsx";
+import TeamFormPage from "./pages/TeamFormPage.jsx";
+import FixturesStandings from "./pages/FixturesStandings.jsx";
+import NotFound from "./pages/NotFound.jsx";
+
+// API URL from environment variable (Vite)
 const API = import.meta.env.VITE_API_URL;
 
 export default function App() {
   const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [banner, setBanner] = useState({ text: "", type: "success" });
+  const [toast, setToast] = useState(null);
 
-  function showBanner(text, type = "success") {
-    setBanner({ text, type });
-    if (type === "success") {
-      setTimeout(() => setBanner({ text: "", type: "success" }), 4000);
-    }
-  }
+  // Dark / Light Mode state
+  const [theme, setTheme] = useState(() => {
+    return localStorage.getItem("apex_theme") || "light";
+  });
 
   useEffect(() => {
-    fetch(API ? `${API}/api/teams` : "/teams.json")
-      .then(r => {
-        if (!r.ok) throw new Error(`HTTP Error ${r.status}`);
-        return r.json();
-      })
-      .then(data => {
-        setTeams(data);
-        showBanner("Retrieved tournament records successfully", "success");
-      })
-      .catch(e => showBanner("Could not load tournament records: " + e.message, "err"))
-      .finally(() => setLoading(false));
+    document.documentElement.setAttribute("data-theme", theme);
+    localStorage.setItem("apex_theme", theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => (prev === "dark" ? "light" : "dark"));
+  };
+
+  const showToast = (message, type = "success") => {
+    setToast({ message, type });
+  };
+
+  // Initial Fetch: async/await with error handling & VITE_API_URL fallback
+  const loadTeams = useCallback(async () => {
+    setLoading(true);
+    try {
+      const endpoint = API ? `${API}/api/teams` : "/teams.json";
+      const res = await fetch(endpoint);
+      if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      const data = await res.json();
+      setTeams(Array.isArray(data) ? data : []);
+    } catch (err) {
+      showToast(`Could not load rosters: ${err.message}`, "error");
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  async function addTeam(team) {
+  useEffect(() => {
+    loadTeams();
+  }, [loadTeams]);
+
+  // CREATE: POST /api/teams
+  const handleAddTeam = async (teamData) => {
     try {
       if (API) {
         const res = await fetch(`${API}/api/teams`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(team)
+          body: JSON.stringify(teamData)
         });
-        if (!res.ok) throw new Error((await res.json()).error || res.statusText);
-        const saved = await res.json();
-        setTeams(prev => [saved, ...prev]);
+        if (!res.ok) {
+          const errBody = await res.json().catch(() => ({}));
+          throw new Error(errBody.error || `HTTP ${res.status}`);
+        }
+        const created = await res.json();
+        setTeams(prev => [created, ...prev]);
       } else {
-        const saved = { ...team, id: Date.now() };
-        setTeams(prev => [saved, ...prev]);
+        const mockCreated = { ...teamData, id: Date.now() };
+        setTeams(prev => [mockCreated, ...prev]);
       }
-      showBanner(`Enrolled "${team.name}" into championship`, "success");
-    } catch (e) {
-      showBanner("Could not save team: " + e.message, "err");
+      showToast(`Successfully enrolled "${teamData.name}" into tournament!`, "success");
+    } catch (err) {
+      showToast(`Failed to enroll team: ${err.message}`, "error");
+      throw err;
     }
-  }
+  };
 
-  async function removeTeam(id) {
+  // UPDATE: PUT /api/teams/:id
+  const handleUpdateTeam = async (id, updatedFields) => {
     try {
       if (API) {
-        await fetch(`${API}/api/teams/${id}`, { method: "DELETE" });
+        const res = await fetch(`${API}/api/teams/${id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(updatedFields)
+        });
+        if (!res.ok) throw new Error(`Server returned HTTP ${res.status}`);
+        const saved = await res.json();
+        setTeams(prev => prev.map(t => ((t._id || t.id) === id ? saved : t)));
+      } else {
+        setTeams(prev =>
+          prev.map(t => ((t._id || t.id) === id ? { ...t, ...updatedFields } : t))
+        );
+      }
+      showToast("Team record updated successfully", "success");
+    } catch (err) {
+      showToast(`Update failed: ${err.message}`, "error");
+    }
+  };
+
+  // DELETE: DELETE /api/teams/:id
+  const handleDeleteTeam = async (id) => {
+    try {
+      if (API) {
+        const res = await fetch(`${API}/api/teams/${id}`, { method: "DELETE" });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
       }
       setTeams(prev => prev.filter(t => (t._id || t.id) !== id));
-      showBanner("Team removed from tournament", "success");
-    } catch (e) {
-      showBanner("Could not remove team: " + e.message, "err");
+      showToast("Team removed from championship roster", "success");
+    } catch (err) {
+      showToast(`Delete failed: ${err.message}`, "error");
     }
-  }
+  };
 
-  function updateStatus(id, newStatus) {
-    setTeams(prev =>
-      prev.map(t => ((t._id || t.id) === id ? { ...t, status: newStatus } : t))
-    );
-    showBanner(`Status updated to "${newStatus}"`, "success");
-  }
+  // Quick Status Toggle
+  const handleStatusChange = async (id, nextStatus) => {
+    await handleUpdateTeam(id, { status: nextStatus });
+  };
 
-  function updatePoints(id, newPoints) {
-    setTeams(prev =>
-      prev.map(t => ((t._id || t.id) === id ? { ...t, points: newPoints } : t))
-    );
-  }
+  // Quick Score / Points Increment
+  const handleScoreIncrement = async (id, newPoints) => {
+    await handleUpdateTeam(id, { points: newPoints });
+  };
 
   return (
-    <>
-      <Navbar teamsCount={teams.length} />
-      <StatsHeader teams={teams} />
+    <ErrorBoundary>
+      <Navbar theme={theme} onToggleTheme={toggleTheme} />
 
-      {banner.text && (
-        <div className={`banner ${banner.type}`} role="alert">
-          {banner.text}
-        </div>
-      )}
-
-      {loading ? (
-        <div style={{ textAlign: "center", padding: "3rem" }}>Loading tournament data…</div>
-      ) : (
+      <main className="content-area">
         <Routes>
           <Route
             path="/"
+            element={<Dashboard teams={teams} loading={loading} />}
+          />
+          <Route
+            path="/teams"
             element={
-              <TeamList
+              <Teams
                 teams={teams}
-                onDelete={removeTeam}
-                onStatusChange={updateStatus}
-                onPointsChange={updatePoints}
+                loading={loading}
+                onUpdateTeam={handleUpdateTeam}
+                onDeleteTeam={handleDeleteTeam}
+                onStatusChange={handleStatusChange}
+                onScoreIncrement={handleScoreIncrement}
+              />
+            }
+          />
+          <Route
+            path="/standings"
+            element={
+              <FixturesStandings
+                teams={teams}
+                onScoreIncrement={handleScoreIncrement}
               />
             }
           />
           <Route
             path="/add"
-            element={<TeamForm onSubmit={addTeam} existingTeams={teams} />}
-          />
-          <Route
-            path="*"
             element={
-              <div style={{ textAlign: "center", padding: "3rem" }}>
-                <h2>404 — Page Not Found</h2>
-              </div>
+              <TeamFormPage
+                onAddTeam={handleAddTeam}
+                existingTeams={teams}
+              />
             }
           />
+          <Route path="*" element={<NotFound />} />
         </Routes>
-      )}
-    </>
+      </main>
+
+      {/* Mobile Tab Navigation */}
+      <BottomNav />
+
+      {/* Toast Notification */}
+      <Toast toast={toast} onClose={() => setToast(null)} />
+    </ErrorBoundary>
   );
 }
