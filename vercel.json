@@ -1,0 +1,5 @@
+{
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/tournament/5-fullstack/frontend/dist/index.html" }
+  ]
+}

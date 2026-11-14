@@ -12,8 +12,17 @@ import TeamFormPage from "./pages/TeamFormPage.jsx";
 import FixturesStandings from "./pages/FixturesStandings.jsx";
 import NotFound from "./pages/NotFound.jsx";
 
-// API URL from environment variable (Vite)
-const API = import.meta.env.VITE_API_URL;
+// Sanitize and normalize API URL to eliminate double-slashes or path mismatches
+function getBaseApiUrl() {
+  const raw = import.meta.env.VITE_API_URL;
+  if (!raw || typeof raw !== "string") return "";
+  let clean = raw.trim();
+  clean = clean.replace(/\/+$/, "");
+  clean = clean.replace(/\/api\/teams$/, "").replace(/\/api$/, "");
+  return clean;
+}
+
+const API = getBaseApiUrl();
 
 export default function App() {
   const [teams, setTeams] = useState([]);

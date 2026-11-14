@@ -59,8 +59,12 @@ export default function TeamFormPage({ onAddTeam, existingTeams = [] }) {
     },
     validate,
     onSubmit: async (formValues) => {
-      await onAddTeam(formValues);
-      navigate("/teams");
+      try {
+        await onAddTeam(formValues);
+        navigate("/teams");
+      } catch (err) {
+        console.error("Team enrollment error:", err);
+      }
     }
   });
 

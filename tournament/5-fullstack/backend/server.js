@@ -15,6 +15,12 @@ const app = express();
 app.use(cors({ origin: process.env.FRONTEND_URL || "*" }));
 app.use(express.json());
 
+// Normalize duplicate slashes in URLs (e.g. //api/teams -> /api/teams)
+app.use((req, res, next) => {
+  req.url = req.url.replace(/\/+/g, "/");
+  next();
+});
+
 // Root health check endpoint
 app.get("/", (req, res) => {
   res.json({
@@ -30,13 +36,15 @@ app.get("/", (req, res) => {
 });
 
 const wrap = fn => (req, res, next) => fn(req, res, next).catch(next);
-app.get("/api/teams", wrap(async (req, res) => res.json(await Team.find().sort("-createdAt"))));
-app.post("/api/teams", wrap(async (req, res) => res.status(201).json(await Team.create(req.body))));
-app.put("/api/teams/:id", wrap(async (req, res) => {
+
+// Support both /api/teams and /teams to prevent 404 routing mismatches
+app.get(["/api/teams", "/teams"], wrap(async (req, res) => res.json(await Team.find().sort("-createdAt"))));
+app.post(["/api/teams", "/teams"], wrap(async (req, res) => res.status(201).json(await Team.create(req.body))));
+app.put(["/api/teams/:id", "/teams/:id"], wrap(async (req, res) => {
   const t = await Team.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
   t ? res.json(t) : res.status(404).json({ error: "Team not found" });
 }));
-app.delete("/api/teams/:id", wrap(async (req, res) => {
+app.delete(["/api/teams/:id", "/teams/:id"], wrap(async (req, res) => {
   const t = await Team.findByIdAndDelete(req.params.id);
   t ? res.status(204).end() : res.status(404).json({ error: "Team not found" });
 }));
