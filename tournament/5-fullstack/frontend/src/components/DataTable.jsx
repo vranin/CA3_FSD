@@ -39,7 +39,14 @@ export default function DataTable({
           </tr>
         </thead>
         <tbody>
-          {teams.map((t, idx) => {
+          {teams.length === 0 ? (
+            <tr>
+              <td colSpan="6" style={{ textAlign: "center", padding: "2.5rem 1rem", color: "var(--ink-muted)" }}>
+                No tournament records found
+              </td>
+            </tr>
+          ) : (
+            teams.map((t, idx) => {
             const isLeader = idx === 0;
             return (
               <tr key={t._id || t.id || idx} className={isLeader ? "leader-row" : ""}>
@@ -74,7 +81,7 @@ export default function DataTable({
                 </td>
               </tr>
             );
-          })}
+          }))}
         </tbody>
       </table>
     </div>

@@ -117,12 +117,12 @@ export default function FixturesStandings({ teams = [], onScoreIncrement }) {
             </div>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "1rem" }}>
+          <div className="fixtures-grid">
             {filteredMatches.map(m => (
               <MatchCard
                 key={m.id}
                 match={m}
-                isSpotlight={m.status === "Live"}
+                isSpotlight={false}
                 onUpdateScore={handleUpdateScore}
               />
             ))}
